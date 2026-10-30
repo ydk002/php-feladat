@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hallgatói Portál - Firebase Auth & Firestore</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 440px;
+            width: 100%;
+            padding: 2rem;
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 1.45rem;
+            color: #1f2937;
+            text-align: center;
+        }
+        .tagline {
+            font-size: 0.9rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.15rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.35rem;
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+        button {
+            width: 100%;
+            background-color: #f59e0b;
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.15s ease-in-out;
+        }
+        button:hover {
+            background-color: #d97706;
+        }
+        .btn-danger {
+            background-color: #ef4444;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+        }
+        .alert-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .alert-success {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .links {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        .links a {
+            color: #d97706;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+        .profile-card {
+            border-top: 1px solid #e5e7eb;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+        }
+        .profile-row {
+            margin-bottom: 0.75rem;
+        }
+        .profile-key {
+            font-size: 0.8rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .profile-val {
+            font-size: 1.05rem;
+            color: #1f2937;
+            font-weight: 500;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .badge {
+            background-color: #fef3c7;
+            color: #92400e;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="text-align: center;">
+            <span class="badge">Firebase Auth + Firestore Demo</span>
+        </div>
+        <h1>Hallgatói Portál</h1>
+        <div class="tagline">Kliensoldali azonosítás felhő alapú védelemmel</div>
+
+        <!-- Üzenetek helye -->
+        <div id="alertBox" class="alert hidden"></div>
+
+        <!-- 1. Bejelentkezés nézet -->
+        <section id="viewBelepes">
+            <h2 style="font-size: 1.2rem; color: #374151; margin-top: 0;">Bejelentkezés</h2>
+            <form id="formBelepes">
+                <div class="form-group">
+                    <label for="belepesEmail">E-mail cím</label>
+                    <input type="email" id="belepesEmail" required placeholder="hallgato@umfst.ro">
+                </div>
+                <div class="form-group">
+                    <label for="belepesJelszo">Jelszó</label>
+                    <input type="password" id="belepesJelszo" required placeholder="••••••••••">
+                </div>
+                <button type="submit">Belépés</button>
+            </form>
+            <div class="links">
+                Még nincs fiókod? <a href="#/regisztracio">Regisztráció</a>
+            </div>
+        </section>
+
+        <!-- 2. Regisztráció nézet -->
+        <section id="viewRegisztracio" class="hidden">
+            <h2 style="font-size: 1.2rem; color: #374151; margin-top: 0;">Regisztráció</h2>
+            <form id="formRegisztracio">
+                <div class="form-group">
+                    <label for="regNev">Teljes név</label>
+                    <input type="text" id="regNev" required placeholder="Példa Péter">
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">E-mail cím</label>
+                    <input type="email" id="regEmail" required placeholder="hallgato@umfst.ro">
+                </div>
+                <div class="form-group">
+                    <label for="regJelszo">Jelszó</label>
+                    <input type="password" id="regJelszo" required placeholder="legalább 10 karakter">
+                </div>
+                <button type="submit">Fiók létrehozása</button>
+            </form>
+            <div class="links">
+                Van már fiókod? <a href="#/belepes">Bejelentkezés</a>
+            </div>
+        </section>
+
+        <!-- 3. Védett Profil nézet -->
+        <section id="viewProfil" class="hidden">
+            <h2 id="udv" style="font-size: 1.3rem; color: #1f2937; margin-top: 0;">Szia!</h2>
+            
+            <div class="profile-card">
+                <div class="profile-row">
+                    <div class="profile-key">Firebase UID</div>
+                    <div class="profile-val" id="profUid" style="font-family: monospace; font-size: 0.85rem;"></div>
+                </div>
+                <div class="profile-row">
+                    <div class="profile-key">Név (Firestore)</div>
+                    <div class="profile-val" id="profNev"></div>
+                </div>
+                <div class="profile-row">
+                    <div class="profile-key">E-mail (Auth token)</div>
+                    <div class="profile-val" id="profEmail"></div>
+                </div>
+                <div class="profile-row">
+                    <div class="profile-key">Létrehozva</div>
+                    <div class="profile-val" id="profLetrehozva">-</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="button" id="btnKilep" class="btn-danger">Kijelentkezés</button>
+            </div>
+        </section>
+    </div>
+
+    <script type="module">
+        import { regisztral, belep, kilep, figyelAuthAllapot } from './app.js';
+
+        const alertBox = document.getElementById('alertBox');
+        const viewBelepes = document.getElementById('viewBelepes');
+        const viewRegisztracio = document.getElementById('viewRegisztracio');
+        const viewProfil = document.getElementById('viewProfil');
+
+        function showAlert(msg, isError = true) {
+            alertBox.textContent = msg;
+            alertBox.className = isError ? 'alert alert-error' : 'alert alert-success';
+            alertBox.classList.remove('hidden');
+        }
+
+        function clearAlert() {
+            alertBox.classList.add('hidden');
+            alertBox.textContent = '';
+        }
+
+        function renderRoute(route, user, profileData) {
+            clearAlert();
+            viewBelepes.classList.add('hidden');
+            viewRegisztracio.classList.add('hidden');
+            viewProfil.classList.add('hidden');
+
+            if (user) {
+                // Ha be van lépve, a profil nézet jelenik meg
+                viewProfil.classList.remove('hidden');
+                document.getElementById('udv').textContent = 'Szia, ' + (profileData?.nev ?? user.displayName ?? user.email) + '!';
+                document.getElementById('profUid').textContent = user.uid;
+                document.getElementById('profNev').textContent = profileData?.nev ?? user.displayName ?? '-';
+                document.getElementById('profEmail').textContent = profileData?.email ?? user.email ?? '-';
+                
+                if (profileData?.letrehozva?.toDate) {
+                    document.getElementById('profLetrehozva').textContent = profileData.letrehozva.toDate().toLocaleString('hu-HU');
+                } else {
+                    document.getElementById('profLetrehozva').textContent = 'Most';
+                }
+            } else {
+                // Ha nincs belépve
+                if (route === '#/regisztracio') {
+                    viewRegisztracio.classList.remove('hidden');
+                } else {
+                    viewBelepes.classList.remove('hidden');
+                }
+            }
+        }
+
+        let currentUser = null;
+        let currentProfile = null;
+
+        // „Védett oldal”: A UI az auth állapotra reagál; a valódi védelem a Firestore Rules!
+        figyelAuthAllapot((user, profileData) => {
+            currentUser = user;
+            currentProfile = profileData;
+            if (!user) {
+                if (location.hash !== '#/regisztracio') {
+                    location.hash = '#/belepes';
+                }
+            } else {
+                location.hash = '#/profil';
+            }
+            renderRoute(location.hash, currentUser, currentProfile);
+        });
+
+        window.addEventListener('hashchange', () => {
+            if (!currentUser && location.hash === '#/profil') {
+                location.hash = '#/belepes';
+                return;
+            }
+            if (currentUser && (location.hash === '#/belepes' || location.hash === '#/regisztracio')) {
+                location.hash = '#/profil';
+                return;
+            }
+            renderRoute(location.hash, currentUser, currentProfile);
+        });
+
+        // Belépési űrlap esemény
+        document.getElementById('formBelepes').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearAlert();
+            const email = document.getElementById('belepesEmail').value.trim();
+            const jelszo = document.getElementById('belepesJelszo').value;
+
+            try {
+                await belep(email, jelszo);
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        });
+
+        // Regisztrációs űrlap esemény
+        document.getElementById('formRegisztracio').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearAlert();
+            const nev = document.getElementById('regNev').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const jelszo = document.getElementById('regJelszo').value;
+
+            try {
+                await regisztral(nev, email, jelszo);
+                showAlert('Sikeres regisztráció!', false);
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        });
+
+        // Kijelentkezés esemény
+        document.getElementById('btnKilep').addEventListener('click', async () => {
+            try {
+                await kilep();
+            } catch (err) {
+                showAlert('Hiba a kijelentkezéskor: ' + err.message, true);
+            }
+        });
+    </script>
+</body>
+</html>

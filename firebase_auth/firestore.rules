@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // A jelszavakat a Firebase Authentication kezeli – Firestore-ban SOHA nem tárolunk jelszót!
+    match /profilok/{uid} {
+      // Csak a bejelentkezett felhasználó olvashatja a saját profilját
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // Létrehozás: csak a saját UID alá, csak a meghatározott mezőkkel, valid névvel és a tokenben lévő e-maillel
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nev', 'email', 'letrehozva'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.nev is string && request.resource.data.nev.size() >= 2
+        && request.resource.data.nev.size() <= 80;
+
+      // Módosítás: kizárólag a név módosítható
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nev']);
+
+      // Törlés tiltva
+      allow delete: if false;
+    }
+  }
+}
